@@ -2,7 +2,7 @@
 // follow the theme; shapes are paired with direct labels so colour is never the only cue.
 import { h, fmt } from "./ui.js";
 
-const W = 640;
+const DEFAULT_W = 640;
 function scale(domain, range) {
   const [d0, d1] = domain, [r0, r1] = range, span = d1 - d0 || 1;
   return (v) => r0 + ((v - d0) / span) * (r1 - r0);
@@ -29,7 +29,8 @@ export function hideTip() { if (tipEl) tipEl.style.display = "none"; }
  * opts: {height, history:[{x:label,y}], forecast:{x:[labels],expected,lower,upper}, lines:[{name,color,dash,y:[...]}] (aligned to forecast x),
  *        secondary:{name,y:[...history values], color} (e.g., rainfall bars on history), unit, ariaLabel, markAt }
  */
-export function forecastChart(o) {
+function forecastSvg(o) {
+  const W = o.width || DEFAULT_W;
   const H = o.height || 280, m = { l: 46, r: 14, t: 14, b: 30 };
   const hist = o.history || [], f = o.forecast;
   const labels = [...hist.map((p) => p.x), ...f.x];
@@ -80,8 +81,8 @@ export function chartLegend(items) {
 }
 
 /** Grouped/simple vertical bars. data: [{label, values:[{v,color,name}]}] */
-export function barChart({ data, height = 220, unit = "", ariaLabel, yMax, format = (v) => fmt.num(v, 0) }) {
-  const H = height, m = { l: 44, r: 10, t: 14, b: 38 };
+function barSvg({ data, height = 220, unit = "", ariaLabel, yMax, format = (v) => fmt.num(v, 0), width: W = DEFAULT_W }) {
+  const H = height, m = { l: 44, r: 10, t: 14, b: 50 };
   const max = yMax || niceMax(Math.max(...data.flatMap((d) => d.values.map((x) => x.v)), 1) * 1.08);
   const sy = scale([0, max], [H - m.b, m.t]);
   const svg = h("svg", { class: "chart", viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": ariaLabel || "Bar chart" });
@@ -95,15 +96,16 @@ export function barChart({ data, height = 220, unit = "", ariaLabel, yMax, forma
       svg.append(r);
       if (data.length <= 10 && k === 1) svg.append(h("text", { x: x0 + bw * j + bw / 2, y: y - 5, "text-anchor": "middle", style: { fill: "var(--ink-2)", fontWeight: 600 } }, format(s.v)));
     });
-    const words = String(d.label).split(" "), line1 = words.slice(0, 2).join(" "), line2 = words.slice(2).join(" ");
-    svg.append(h("text", { x: m.l + slot * (i + 0.5), y: H - m.b + 15, "text-anchor": "middle" }, line1), line2 ? h("text", { x: m.l + slot * (i + 0.5), y: H - m.b + 27, "text-anchor": "middle" }, line2) : null);
+    const per = Math.max(5, Math.floor(slot / 6.4)), lines = [];
+    String(d.label).split(" ").forEach((w) => { const last = lines[lines.length - 1]; if (last !== undefined && (last + " " + w).length <= per) lines[lines.length - 1] = last + " " + w; else lines.push(w); });
+    lines.slice(0, 3).forEach((ln, k) => svg.append(h("text", { x: m.l + slot * (i + 0.5), y: H - m.b + 15 + k * 12, "text-anchor": "middle" }, ln)));
   });
   svg.append(h("line", { class: "axis", x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b }));
   return svg;
 }
 
 /** Horizontal stacked distribution bar (e.g., risk mix). parts: [{label,value,color}] */
-export function stackBar(parts, { height = 26 } = {}) {
+function stackSvg(parts, { height = 26, width: W = DEFAULT_W } = {}) {
   const total = parts.reduce((a, p) => a + p.value, 0) || 1;
   const svg = h("svg", { class: "chart", viewBox: `0 0 ${W} ${height + 18}`, role: "img", "aria-label": parts.map((p) => `${p.label}: ${p.value}`).join(", ") });
   let x = 0;
@@ -119,7 +121,7 @@ export function stackBar(parts, { height = 26 } = {}) {
 }
 
 /** Dual-series line comparison (baseline vs scenario), with band for the scenario. */
-export function compareChart({ dates, a, b, height = 240, unit = "cases", nameA = "Normal", nameB = "Monsoon", ariaLabel }) {
+function compareSvg({ dates, a, b, height = 240, unit = "cases", nameA = "Normal", nameB = "Monsoon", ariaLabel, width: W = DEFAULT_W }) {
   const H = height, m = { l: 46, r: 14, t: 14, b: 30 }, n = dates.length;
   const ymax = niceMax(Math.max(...a.upper, ...b.upper, 1) * 1.05);
   const sx = scale([0, n - 1], [m.l + 8, W - m.r - 8]), sy = scale([0, ymax], [H - m.b, m.t]);
@@ -152,3 +154,16 @@ export function spark(values, { w = 110, hgt = 28, color = "var(--blue)" } = {})
   return h("svg", { viewBox: `0 0 ${w} ${hgt}`, width: w, height: hgt, role: "img", "aria-label": `Trend, latest ${fmt.num(values[values.length - 1], 0)}` },
     h("path", { d: pathOf(values.map((v, i) => [sx(i), sy(v)])), fill: "none", stroke: color, "stroke-width": 1.8 }));
 }
+
+/** Render a chart at the real pixel width of its container so text stays legible; re-renders on resize. */
+export function fit(build, minW = 240) {
+  const box = h("div", { class: "fit" });
+  let last = 0;
+  const draw = () => { const w = Math.round(box.clientWidth); if (w < 40 || w === last) return; last = w; box.replaceChildren(build(Math.max(minW, w))); };
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(draw).observe(box); else requestAnimationFrame(draw);
+  return box;
+}
+export const forecastChart = (o) => fit((w) => forecastSvg({ ...o, width: w }));
+export const barChart = (o) => fit((w) => barSvg({ ...o, width: w }));
+export const stackBar = (parts, o = {}) => fit((w) => stackSvg(parts, { ...o, width: w }));
+export const compareChart = (o) => fit((w) => compareSvg({ ...o, width: w }));

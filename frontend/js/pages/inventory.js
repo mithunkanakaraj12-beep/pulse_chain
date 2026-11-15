@@ -19,10 +19,10 @@ export async function render({ meta, app, query }) {
     ribbonBox.replaceChildren(h("div", { class: "ribbon" }, kpi(rows.length, "Clinic and medicine pairs"), kpi(c.critical, "Critical", { tone: c.critical ? "danger" : "good" }), kpi(c.high, "High risk", { tone: c.high ? "warn" : "good" }), kpi(fmt.int(c.expired), "Expired units", { tone: c.expired ? "warn" : "", detail: "Not counted as stock" })));
     let list = rows.filter((r) => (st.risk === "all" || r.risk === st.risk) && `${r.clinic_name} ${r.short_name}`.toLowerCase().includes(st.q.toLowerCase()));
     list.sort((a, b) => st.sort === "risk" ? (RISK_ORDER[b.risk] - RISK_ORDER[a.risk]) || ((a.days_to_stockout ?? 999) - (b.days_to_stockout ?? 999)) : st.sort === "clinic" ? a.clinic_name.localeCompare(b.clinic_name) : (a.days_to_stockout ?? 999) - (b.days_to_stockout ?? 999));
-    holder.replaceChildren(
+    holder.replaceChildren(...[
       cached ? h("div", { class: "callout", style: { marginBottom: "10px" } }, "Offline: showing saved stock. Edits you make are kept on this device and sync when you reconnect; projections update after sync.") : null,
       list.length ? h("div", { class: "tablewrap" }, h("table", { class: "t" }, h("thead", {}, h("tr", {}, h("th", {}, "Clinic"), h("th", {}, "Medicine"), h("th", { class: "r" }, "Usable"), h("th", { class: "r" }, "Daily use"), h("th", {}, "Stock runway"), h("th", {}, "Risk"), h("th", {}, "Reorder"), h("th", {}))),
-        h("tbody", {}, list.flatMap((r) => rowEls(r))))) : empty("Nothing matches", "Change the risk filter or search."));
+        h("tbody", {}, list.flatMap((r) => rowEls(r))))) : empty("Nothing matches", "Change the risk filter or search.")].filter(Boolean));
   }
   const key = (r) => `${r.clinic_id}:${r.medicine_id}`;
   function rowEls(r) {

@@ -16,8 +16,9 @@ const state = { meta: null, alertsActive: 0, current: null, cleanup: null, token
 export const app = { get meta() { return state.meta; }, refreshMeta, rerender, navigate };
 
 function parseHash() {
-  const [path, ...rest] = (location.hash.replace(/^#\/?/, "") || "dashboard").split("/");
-  return { path: path || "dashboard", params: rest.map(decodeURIComponent), query: new URLSearchParams(location.hash.split("?")[1] || "") };
+  const [pathPart, qs = ""] = (location.hash.replace(/^#\/?/, "") || "dashboard").split("?");
+  const [path, ...rest] = pathPart.split("/");
+  return { path: path || "dashboard", params: rest.map(decodeURIComponent), query: new URLSearchParams(qs) };
 }
 export function navigate(to) { location.hash = `#/${to}`; }
 

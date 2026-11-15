@@ -16,7 +16,7 @@ export async function render({ meta, app, query }) {
       const q = new URLSearchParams({ disease: st.disease, region: st.region, weeks: st.weeks });
       if (st.clinic) q.set("clinic_id", st.clinic);
       const { data: d, cached } = await api.getWithMeta(`/api/forecast?${q}`);
-      results.replaceChildren(...view(d, cached));
+      results.replaceChildren(...view(d, cached).filter(Boolean));
     } catch (e) { results.replaceChildren(errorBox(e, draw)); }
   }
   function drawControls() {
@@ -62,9 +62,10 @@ export async function render({ meta, app, query }) {
       h("p", { class: "hint" }, `Average miss per clinic-week on ${fmt.date(ev.test_window[0])} to ${fmt.date(ev.test_window[1])}, weeks the model never trained on. Lower is better. ${ev.mae_improvement_vs_best_baseline_pct >= 0 ? `The model is ${fmt.num(ev.mae_improvement_vs_best_baseline_pct, 1)}% better than the best simple baseline.` : "The model is not better than the best simple baseline here."} The 80% range covered ${fmt.num(ev.interval.empirical * 100, 0)}% of held-out weeks.`),
       h("a", { href: "#/model" }, "Full evaluation and limits")) : null;
     return [sc, cached ? h("div", { class: "callout" }, "Showing the last forecast saved on this device. Forecasts cannot be recalculated while offline.") : null, ribbon,
-      h("div", { class: "grid cols-main" }, panel(`${d.disease_name} forecast, ${d.clinic_id ? clinics.find((c) => c.id === d.clinic_id)?.name : d.region === "all" ? "whole network" : meta.regions.find((r) => r.id === d.region)?.name}`, chart, { hint: "Weekly cases. History is simulated; the forecast is the model's output." }),
-        h("div", { class: "stack" }, panel("Why this forecast", drivers), panel("How good is this model?", evPanel || ""))),
-      h("div", { class: "grid cols-2" }, panel("Medicine needed because of these cases", demand, { hint: "Cases times the treatment protocol for each medicine." }), panel("Clinics that may run short", risk))];
+      h("div", { class: "grid cols-main" },
+        h("div", { class: "stack" }, panel(`${d.disease_name} forecast, ${d.clinic_id ? clinics.find((c) => c.id === d.clinic_id)?.name : d.region === "all" ? "whole network" : meta.regions.find((r) => r.id === d.region)?.name}`, chart, { hint: "Weekly cases. History is simulated; the forecast is the model's output." }),
+          panel("Medicine needed because of these cases", demand, { hint: "Cases times the treatment protocol for each medicine." }), panel("Clinics that may run short", risk)),
+        h("div", { class: "stack" }, panel("Why this forecast", drivers), panel("How good is this model?", evPanel || "")))];
   }
 
   drawControls(); await draw();

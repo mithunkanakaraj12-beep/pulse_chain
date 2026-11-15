@@ -12,6 +12,11 @@ SURGE_MIN_EXTRA = 3.0    # ... and by at least 3 cases/week on average (ignore n
 REPLENISH_WINDOW_DAYS = 21
 
 
+def _cap(text: str) -> str:
+    """Upper-case only the first letter (str.capitalize() would turn 'ACT' into 'act')."""
+    return text[:1].upper() + text[1:]
+
+
 def surge_signal(weeks: Sequence[Mapping[str, float]], horizon: int = 4) -> dict[str, Any]:
     """Compare the next `horizon` forecast weeks with the seasonal-climatology baseline."""
     w = list(weeks)[:horizon]
@@ -49,7 +54,7 @@ def build_alerts(*, pairs: Sequence[Mapping[str, Any]], surges: Sequence[Mapping
                 "key": key, "type": kind, "severity": risk,
                 "clinic_id": p["clinic_id"], "clinic_name": clinic["name"], "region": clinic["region"],
                 "medicine_id": p["medicine_id"], "medicine_name": med["name"], "disease": None,
-                "title": f"{med['short_name'].capitalize()} - {'critical shortage' if risk == 'critical' else 'shortage ahead'}",
+                "title": f"{_cap(med['short_name'])} - {'critical shortage' if risk == 'critical' else 'shortage ahead'}",
                 "message": a["risk_reason"], "days_to_stockout": days, "stockout_date": a["stockout_date"],
                 "lead_time_days": p["lead_time_days"],
                 "reorder_qty": a["reorder_qty"], "reorder_by": a["reorder_by"],
@@ -65,7 +70,7 @@ def build_alerts(*, pairs: Sequence[Mapping[str, Any]], surges: Sequence[Mapping
                 "key": key, "type": "replenishment", "severity": "low",
                 "clinic_id": p["clinic_id"], "clinic_name": clinic["name"], "region": clinic["region"],
                 "medicine_id": p["medicine_id"], "medicine_name": med["name"], "disease": None,
-                "title": f"{med['short_name'].capitalize()} - replenishment due",
+                "title": f"{_cap(med['short_name'])} - replenishment due",
                 "message": f"Order {a['reorder_qty']} {med['unit']} by {a['reorder_by']} to stay covered through the next review period.",
                 "days_to_stockout": a["days_to_stockout"], "stockout_date": a["stockout_date"],
                 "lead_time_days": p["lead_time_days"],

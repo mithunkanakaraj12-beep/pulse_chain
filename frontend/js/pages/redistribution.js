@@ -41,7 +41,7 @@ export async function render({ meta, app }) {
         ["Receiver stock lasts", `${fmt.days(t.receiver_days_to_stockout_before)} now, ${fmt.days(t.receiver_days_to_stockout_after)} after`],
         ["Journey", `${fmt.num(t.distance_km, 0)} km, about ${fmt.num(t.travel_hours, 1)} h, arrives ${fmt.date(t.arrival_date)}`],
         ["Donor keeps", `${fmt.int(t.donor_stock_after_cover_period)} ${t.unit} after covering its own demand (its minimum is ${fmt.int(t.donor_min_safety_stock)})`],
-        ["Stock sent", t.batches.map((b) => `${b.quantity} from batch ${b.batch_id}, expires ${fmt.date(b.expiry_date)}`).join("; ")]].map(([a, b]) => h("tr", {}, h("td", { class: "muted", style: { width: "34%" } }, a), h("td", {}, b))))),
+        ["Stock sent", t.batches.map((b) => `${b.quantity} from batch ${b.batch_id}, expires ${fmt.dateY(b.expiry_date)}`).join("; ")]].map(([a, b]) => h("tr", {}, h("td", { class: "muted", style: { width: "34%" } }, a), h("td", {}, b))))),
       h("div", { class: "row" }, h("button", { class: "btn primary small", onClick: (e) => { e.stopPropagation(); decide(t, true); } }, "Review and approve"), h("button", { class: "btn small", onClick: (e) => { e.stopPropagation(); decide(t, false); } }, "Reject"), h("span", { class: "chip neutral" }, "Needs human approval")));
   }
   draw();
@@ -52,6 +52,6 @@ export async function render({ meta, app }) {
     cached ? h("div", { class: "callout", style: { marginBottom: "12px" } }, "Offline: showing saved proposals. Approvals are kept on this device and applied when you reconnect, if they still make sense.") : null,
     h("div", { class: "ribbon" }, kpi(data.proposed.length, "Proposals awaiting a decision", { tone: data.proposed.length ? "warn" : "good" }), kpi(fmt.int(units), "Units that could move"), kpi(data.decided.filter((d) => d.status === "approved").length, "Approved this session", { tone: "good" })),
     h("div", { class: "callout", style: { marginBottom: "14px" } }, h("b", {}, "Safety rules applied to every proposal: "), "the same medicine only; expired stock is never sent; at least 45 days of shelf life remain on arrival; the donor keeps its own safety stock even if demand runs high; cold-chain items only go to clinics with cold chain; the stock must arrive before the receiver runs out."),
-    h("div", { class: "grid cols-main" }, panel("Transfer map", mapBox, { hint: "Dashed arrows are proposals; the selected one is highlighted." }), h("div", { class: "stack" }, h("h2", {}, "Proposed transfers"), listBox)),
+    h("div", { class: "grid cols-main" }, panel("Transfer map", mapBox, { hint: "Dashed arrows are proposals; the selected one is highlighted.", cls: "sticky" }), h("div", { class: "stack" }, h("h2", {}, "Proposed transfers"), listBox)),
     h("div", { style: { height: "16px" } }), panel("Decisions", decided));
 }

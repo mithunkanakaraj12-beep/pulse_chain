@@ -37,11 +37,14 @@ export async function render({ meta, app }) {
         i < STEPS.length - 1 ? h("button", { class: "btn primary", onClick: () => go(i + 1) }, `Next: ${STEPS[i + 1][1]}`) : h("button", { class: "btn", onClick: () => go(0) }, "Start again"),
         h("button", { class: "btn ghost", onClick: st.timer ? stopAuto : autoplay }, st.timer ? "Pause" : "Play through")))));
   }
-  function autoplay() { if (st.i >= STEPS.length - 1) st.i = -1; st.timer = setInterval(() => { if (st.i >= STEPS.length - 1) return stopAuto(); show(st.i + 1); }, 5200); show(Math.max(st.i, 0) === st.i && st.i >= 0 ? st.i : 0); }
+  function autoplay() {
+    if (st.i >= STEPS.length - 1) st.i = 0;
+    st.timer = setInterval(() => { if (st.i >= STEPS.length - 1) { clearInterval(st.timer); st.timer = null; show(st.i); } else show(st.i + 1); }, 5200);
+    show(st.i);
+  }
   function stopAuto() { if (st.timer) { clearInterval(st.timer); st.timer = null; if (st.data) show(st.i); } }
 
   const note = (t) => h("p", { class: "hint", style: { marginTop: "8px" } }, t);
-  const SIMTAG = h("div", { class: "callout sim", style: { marginBottom: "12px" } }, st.data ? "" : "");
 
   const STEPS_VIEW = {
     normal: (s) => h("div", { class: "stack" }, h("p", { class: "muted" }, "A typical late-May week. Rainfall is ordinary, malaria is at its seasonal level and most clinics have enough stock to reach the next delivery."),
@@ -76,7 +79,7 @@ export async function render({ meta, app }) {
           h("tbody", {}, rows.map((r) => h("tr", {}, h("td", {}, h("b", {}, r.clinic_name), h("div", { class: "faint" }, r.short_name)),
             h("td", {}, runway({ risk: r.risk_after, lead_time_days: r.lead_time_days, days_to_stockout: r.days_after, days_to_stockout_pessimistic: r.days_after_pessimistic, days_to_stockout_optimistic: r.days_after_optimistic })),
             h("td", { class: "r" }, h("b", {}, fmt.days(r.days_after)), h("div", { class: "faint" }, `was ${fmt.days(r.days_before)}`), r.naive_days_cover != null ? h("div", { class: "faint" }, `a simple stock/avg-use count says ${fmt.days(r.naive_days_cover)}`) : null),
-            h("td", {}, riskChip(r.risk_before), " to ", riskChip(r.risk_after)))))) : h("p", { class: "muted" }, "No clinic and medicine pair changed rating."), runwayKey());
+            h("td", {}, riskChip(r.risk_before), " to ", riskChip(r.risk_after))))))) : h("p", { class: "muted" }, "No clinic and medicine pair changed rating."), runwayKey());
     },
     sms: (s) => h("div", { class: "stack" }, h("p", { class: "muted" }, "Health workers are notified by plain text message, which works on basic phones with weak signal. Each message names the clinic, the medicine, how many days remain, and what to do."),
       s.messages.length ? h("div", { class: "grid cols-2" }, s.messages.map((m) => h("div", { class: `item ${m.severity}` }, h("div", { class: "row between" }, h("b", {}, m.health_worker), riskChip(m.severity)), h("div", { class: "faint" }, `${m.clinic_name}, ${m.phone}`), h("div", { class: "sms-bubble" }, m.body), h("div", { class: "sms-meta" }, `${m.chars} of 160 characters`)))) : h("p", { class: "muted" }, "No clinic crossed the alert level, so no messages would be sent."),

@@ -58,9 +58,9 @@ export async function render({ app, meta }) {
       h("a", { class: "btn primary", href: "#/demo" }, "Run the monsoon demo")),
     ribbon,
     h("div", { class: "grid cols-main" },
-      panel("Malaria outlook, whole network", outlook, { hint: "Weekly cases across all clinics. The shaded band is an 80% prediction range." }),
+      h("div", { class: "stack" }, panel("Malaria outlook, whole network", outlook, { hint: "Weekly cases across all clinics. The shaded band is an 80% prediction range." }), diseases),
       panel("Where supply is thin", thin, { hint: "Stock cover in days, against how long resupply takes." })),
-    h("div", { style: { height: "16px" } }), diseases, h("div", { style: { height: "16px" } }),
+    h("div", { style: { height: "16px" } }),
     h("div", { class: "grid cols-main" },
       panel("Clinic map", map, { hint: "Select a clinic to open its page." }),
       h("div", { class: "stack" }, panel("Network stock cover", coverChart, { hint: "Weeks of usable stock at forecast demand. Orange: some clinics are short." }), panel("Needs attention", alerts))));
